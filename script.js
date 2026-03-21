@@ -63,7 +63,7 @@ function payNow(amt, type) {
         "handler": function () {
             localStorage.setItem('user_pdf', originalPdfBase64);
             localStorage.setItem('pay_type', type);
-            window.location.href = "result.html";
+            window.location.href = "./result.html";
         }
     };
     new Razorpay(options).open();
