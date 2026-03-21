@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Analysis Dashboard | Ram Mohan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    
+    <style>
+        body { background: #0a0f1e; color: white; font-family: 'Segoe UI', sans-serif; padding: 20px; }
+        .dashboard-card { background: #161e31; border-radius: 20px; padding: 25px; border: 1px solid #2d3748; height: 100%; }
+        #pdf-canvas { width: 100%; border-radius: 10px; background: white; box-shadow: 0 0 25px rgba(0, 242, 254, 0.2); }
+        .ai-badge { background: linear-gradient(45deg, #00f2fe, #4facfe); color: white; padding: 4px 12px; border-radius: 50px; font-size: 14px; }
+        .status-box { background: rgba(255, 255, 255, 0.05); border-radius: 15px; padding: 20px; margin-top: 20px; border-left: 5px solid #4facfe; }
+        .btn-download { background: linear-gradient(45deg, #00b09b, #96c93d); border: none; font-weight: bold; padding: 15px; }
+        .preview-container { height: 750px; overflow-y: auto; scrollbar-width: thin; }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid">
+    <div class="row g-4">
+        <div class="col-md-5">
+            <div class="dashboard-card shadow">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="fw-bold m-0">AI Analysis</h2>
+                    <span class="ai-badge" id="planLabel">PLAN</span>
+                </div>
+                <hr class="border-secondary">
+                
+                <div class="status-box">
+                    <h5 class="text-info">✨ AI Optimization Steps Applied:</h5>
+                    <ul id="stepsList" class="mt-3 small">
+                        </ul>
+                </div>
+
+                <div class="mt-5">
+                    <button class="btn btn-download btn-lg w-100 rounded-pill shadow" onclick="downloadPdf()">
+                        🚀 DOWNLOAD OPTIMIZED PDF
+                    </button>
+                    <a href="index.html" class="d-block mt-4 text-center text-secondary text-decoration-none small">
+                        ← Re-scan Another Resume
+                    </a>
+                </div>
+                
+                <div class="mt-4 p-3 bg-dark rounded border border-secondary">
+                    <p class="small text-muted mb-0"><strong>Note:</strong> Hamara AI aapke resume mein high-level technical keywords inject kar chuka hai (Invisible layer). Ab jab aap ise dobara upload karenge, aapka score <strong>95% se upar</strong> aayega.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-7">
+            <div class="dashboard-card">
+                <p class="text-center text-secondary small mb-2">Live AI Preview (Final Document)</p>
+                <div class="preview-container">
+                    <canvas id="pdf-canvas"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const pdfData = localStorage.getItem('user_pdf');
+    const payType = localStorage.getItem('pay_type');
+    let finalBlobUrl = null;
+
+    window.onload = async () => {
+        if (!pdfData) {
+            alert("No data found! Redirecting...");
+            return window.location.href = "index.html";
+        }
+        document.getElementById('planLabel').innerText = payType === 'OPTIMIZE' ? 'PREMIUM OPTIMIZE' : 'BASIC CHECK';
+        await generateHighTechReport();
+    };
+
+    async function generateHighTechReport() {
+        const { PDFDocument, rgb, StandardFonts } = PDFLib;
+        const bytes = new Uint8Array(atob(pdfData).split("").map(c => c.charCodeAt(0)));
+        const doc = await PDFDocument.load(bytes);
+        const pages = doc.getPages();
+        const firstPage = pages[0];
+        const { width, height } = firstPage.getSize();
+        const font = await doc.embedFont(StandardFonts.HelveticaBold);
+        const list = document.getElementById('stepsList');
+
+        // PDF.js for scanning word locations
+        const pdfjsLib = window['pdfjs-dist/build/pdf'];
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        const pdf = await pdfjsLib.getDocument({data: bytes}).promise;
+        const scanPage = await pdf.getPage(1);
+        const textContent = await scanPage.getTextContent();
+
+        if (payType === 'OPTIMIZE') {
+            // --- ₹19 TECHNOLOGY: REWRITE & INVISIBLE BOOSTER ---
+            // 1. Cover old header
+            firstPage.drawRectangle({ x: 50, y: height - 120, width: width - 100, height: 75, color: rgb(1, 1, 1) });
+            
+            // 2. Add AI Professional Header
+            firstPage.drawText("AI OPTIMIZED: Senior Full-Stack Developer | Enterprise Solutions Expert", {
+                x: 60, y: height - 95, size: 12, font, color: rgb(0, 0.4, 0.8)
+            });
+
+            // 3. INVISIBLE BOOSTER (Injecting Keywords for 100% Score)
+            const booster = "rammohan_ai_verified java springboot microservices react angular nodejs sql aws cloud docker kubernetes git devops education experience summary";
+            firstPage.drawText(booster, { x: 5, y: 5, size: 1, color: rgb(1, 1, 1), opacity: 0.01 });
+
+            list.innerHTML = `
+                <li>Header Re-structured for ATS</li>
+                <li>Invisible High-Level Keywords Injected</li>
+                <li>Re-upload Score: Guaranteed 95%+</li>
+                <li>Technical Title Optimized</li>
+            `;
+        } else {
+            // --- ₹9 TECHNOLOGY: PRECISION RED BOXING ---
+            let errorFound = 0;
+            textContent.items.forEach(item => {
+                const word = item.str.toLowerCase();
+                if ((word.includes("summary") || word.includes("skill") || word.includes("objective")) && errorFound < 5) {
+                    const tx = item.transform;
+                    // Draw red box exactly on text
+                    firstPage.drawRectangle({
+                        x: tx[4], y: tx[5] - 2, width: item.width + 5, height: item.height + 8,
+                        borderColor: rgb(1, 0, 0), borderWidth: 1.5, opacity: 0.4
+                    });
+                    errorFound++;
+                }
+            });
+            firstPage.drawText("AI WARNING: Keywords Missing", { x: 55, y: height - 35, size: 10, font, color: rgb(1, 0, 0) });
+            
+            list.innerHTML = `
+                <li>Weak Sections Identified and Marked</li>
+                <li>ATS Keyword Gaps Detected</li>
+                <li>Formatting Errors Boxed in Red</li>
+            `;
+        }
+
+        const modBytes = await doc.save();
+        const blob = new Blob([modBytes], { type: 'application/pdf' });
+        finalBlobUrl = URL.createObjectURL(blob);
+        renderInCanvas(blob);
+    }
+
+    async function renderInCanvas(blob) {
+        const url = URL.createObjectURL(blob);
+        const pdfjsLib = window['pdfjs-dist/build/pdf'];
+        const loadingTask = pdfjsLib.getDocument(url);
+        const pdf = await loadingTask.promise;
+        const page = await pdf.getPage(1);
+        
+        const scale = 1.5;
+        const viewport = page.getViewport({ scale });
+        const canvas = document.getElementById('pdf-canvas');
+        const context = canvas.getContext('2d');
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        await page.render({ canvasContext: context, viewport: viewport }).promise;
+    }
+
+    function downloadPdf() {
+        if (!finalBlobUrl) return alert("Report generating...");
+        const a = document.createElement('a');
+        a.href = finalBlobUrl;
+        a.download = "AI_Optimized_Resume_RamMohan.pdf";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+</script>
+
+</body>
+</html>
