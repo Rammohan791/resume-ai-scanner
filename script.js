@@ -3,7 +3,7 @@ let originalPdfBase64 = null;
 let layoutMapping = [];
 let fullResumeText = "";
 
-// ⚠️ IMPORTANT: Apni Gemini API Key yahan dalein
+// ⚠️ IMPORTANT: Apni Real Gemini API Key yahan dalein
 const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE"; 
 
 // File selection handler
@@ -20,7 +20,7 @@ document.getElementById('resumeInput').addEventListener('change', async function
     }
 });
 
-// PDF.js engine to extract raw text and exact word bounding boxes/coordinates
+// PDF.js engine to extract raw text and exact word coordinates
 async function extractPdfTextAndCoordinates(data) {
     const pdfjsLib = window['pdfjs-dist/build/pdf'];
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
@@ -34,9 +34,7 @@ async function extractPdfTextAndCoordinates(data) {
         const content = await page.getTextContent();
         
         content.items.forEach(item => {
-            // Full text build up for AI contextual scanning
             fullResumeText += item.str + " ";
-            // Exact layout map extraction for highlighting coordinates on canvas
             layoutMapping.push({
                 text: item.str,
                 x: item.transform[4],
@@ -56,85 +54,80 @@ async function analyzeResume() {
         return;
     }
 
-    if (GEMINI_API_KEY === "YOUR_GEMINI_API_KEY_HERE") {
-        alert("Bhai, script.js ki line 6 me apni real Gemini API Key to daalo!");
+    if (GEMINI_API_KEY === "YOUR_GEMINI_API_KEY_HERE" || GEMINI_API_KEY === "") {
+        alert("Bhai, script.js ki line 7 me apni real Gemini API Key daalo!");
         resetButton();
         return;
     }
 
-    // Dynamic AI prompt instructing structural and grammatical tracking via coordinates
+    // High level strict prompt for exact error identification
     const promptText = `
-    You are an expert ATS System and Grammar Checker. Analyze this resume text and layout data.
-    Identify grammatical mistakes, typos, and alignment anomalies based on text coordinates.
-
-    [Resume Content]: ${fullResumeText}
-    [Layout/Coordinates Data]: ${JSON.stringify(layoutMapping.slice(0, 400))} 
-
-    Respond strictly in JSON format with this structure:
+    You are an advanced ATS Resume Analyzer. Analyze the provided resume text and coordinate map data.
+    Your job is to identify REAL grammatical errors, typos, spelling mistakes, or severe alignment/indentation anomalies.
+    
+    CRITICAL: Do NOT flag standard section headings like "Profile Summary", "Skills", "Technical Skills", or "Experience" as errors unless they have a blatant typo.
+    
+    [Resume Text]: ${fullResumeText}
+    [Coordinate Mapping Data]: ${JSON.stringify(layoutMapping.slice(0, 350))}
+    
+    Respond strictly in a valid JSON format. Do not write any markdown code blocks or prose. Match the exact JSON keys below:
     {
-      "atsScore": 85,
+      "atsScore": 78,
       "errors": [
-        { "text": "wrong_word", "type": "GRAMMAR", "suggestion": "correct_word", "reason": "Subject-verb agreement issue" },
-        { "text": "Profile Summary", "type": "ALIGNMENT", "suggestion": "Profile Summary", "reason": "Indentation is breaking ATS rule" }
+        { "text": "exact_wrong_word_from_text", "type": "GRAMMAR", "suggestion": "CorrectWord", "reason": "Spelling mistake or grammar issue" }
       ]
     }`;
 
-    // Direct Integration with Gemini API REST Endpoint from Frontend
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
     try {
         const response = await fetch(apiUrl, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 contents: [{ parts: [{ text: promptText }] }],
-                generationConfig: {
-                    responseMimeType: "application/json"
-                }
+                generationConfig: { responseMimeType: "application/json" }
             })
         });
 
-        if (!response.ok) {
-            throw new Error(`API Response Error: ${response.statusText}`);
-        }
+        if (!response.ok) throw new Error(`API Error: ${response.statusText}`);
 
         const data = await response.json();
         const rawAiText = data.candidates[0].content.parts[0].text;
         const aiResult = JSON.parse(rawAiText);
         
-        // Storing data to localStorage for result.html dashboard render pipeline
+        // Save to local storage for result.html dashboard
         localStorage.setItem('user_pdf', originalPdfBase64);
         localStorage.setItem('ai_analysis_report', JSON.stringify(aiResult));
         localStorage.setItem('layout_mapping', JSON.stringify(layoutMapping));
         localStorage.setItem('user_score', aiResult.atsScore + "%");
 
-        // Dynamic transition to display state
+        // Transition layout view
         document.getElementById('upload-box').style.display = "none";
         document.getElementById('result-box').style.display = "block";
         document.getElementById('dynamicScore').innerText = aiResult.atsScore + "%";
         
         const msg = document.getElementById('statusMsg');
-        msg.innerText = aiResult.atsScore > 80 ? "✅ Structure Passed! Optimization Ready." : "⚠️ Grammar/Alignment Fixes Required!";
-        msg.style.color = aiResult.atsScore > 80 ? "#00ff96" : "#ff4d4d";
+        if (aiResult.atsScore >= 85) {
+            msg.innerText = "✅ Excellent Structure! minor improvements available.";
+            msg.style.color = "#00ff96";
+        } else {
+            msg.innerText = "⚠️ Issues Detected! Optimization Required.";
+            msg.style.color = "#ff4d4d";
+        }
 
     } catch (error) {
-        console.error("AI Scanning Process Broken: ", error);
-        alert("Gemini AI Engine se connect nahi ho paye. Apni API key re-check karein!");
+        console.error(error);
+        alert("Scanning complete hone me dikkat aayi. Check your API Key or Network connection!");
         resetButton();
     }
 }
 
-// Router to pass workflow into dynamic result dashboard
 function goToDashboard(type) {
-    if (!originalPdfBase64) {
-        return alert("Bhai, data missing hai!");
-    }
+    if (!originalPdfBase64) return alert("Data missing!");
     window.location.href = "./result.html";
 }
 
-// Reset UI state if operation drops
 function resetButton() {
     document.getElementById('btnText').innerText = "ANALYZE RESUME";
     document.getElementById('mainBtn').disabled = false;
