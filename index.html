@@ -38,8 +38,7 @@
             <p id="statusMsg" class="fw-bold mt-3"></p>
             
             <div class="d-grid gap-2 mt-4">
-                <!-- Hta diya payment, direct free full optimization link -->
-                <button class="btn btn-gold py-3 shadow" onclick="goToDashboard('OPTIMIZE')">🚀 View Full AI Optimization (FREE)</button>
+                <button class="btn btn-gold py-3 shadow" onclick="goToDashboard()">🚀 View Dashboard & Auto-Correct Gaps (FREE)</button>
             </div>
         </div>
     </div>
@@ -52,8 +51,8 @@
             <p class="small text-muted">Hamara AI tool aapke resume ko scan karke ATS (Applicant Tracking System) ke liye ready karta hai.</p>
             <ul class="list-unstyled">
                 <li>🚀 <strong>Step 1:</strong> Apni Resume PDF upload karein.</li>
-                <li>🔍 <strong>Step 2:</strong> AI aapka current "Resume Score %" calculate karega.</li>
-                <li>🛠️ <strong>Step 3:</strong> High-level keywords inject karne ke liye Optimize button dabayein.</li>
+                <li>🔍 <strong>Step 2:</strong> Real-Time Gemini AI errors aur alignment check karega.</li>
+                <li>🛠️ <strong>Step 3:</strong> Sahi corrections ke saath dynamic clean document instantly download karein.</li>
             </ul>
         </div>
     </div>
@@ -71,10 +70,9 @@
         const input = document.getElementById('resumeInput');
         if (!input.files[0]) return alert("Bhai, file select karo!");
         
-        document.getElementById('btnText').innerText = "AI Deep Scanning...";
+        document.getElementById('btnText').innerText = "AI Dynamic Engine Analyzing...";
         document.getElementById('mainBtn').disabled = true;
-
-        setTimeout(() => { analyzeResume(); }, 2000);
+        analyzeResume();
     }
 </script>
 </body>
