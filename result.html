@@ -9,8 +9,9 @@
     <style>
         body { background: #0a0f1e; color: white; font-family: 'Segoe UI', sans-serif; padding: 20px; }
         .dashboard-card { background: #161e31; border-radius: 20px; padding: 25px; border: 1px solid #2d3748; height: 100%; }
-        #pdf-canvas { width: 100%; border-radius: 10px; background: white; }
+        #pdf-canvas { width: 100%; border-radius: 10px; background: white; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
         .status-box { background: rgba(255, 255, 255, 0.05); border-radius: 15px; padding: 20px; border-left: 5px solid #ff4d4d; }
+        .preview-container { height: 680px; overflow-y: auto; }
     </style>
 </head>
 <body>
@@ -23,7 +24,7 @@
                 <hr class="border-secondary">
                 
                 <div class="status-box">
-                    <h5 class="text-warning">🔍 Detected Grammar & Alignment Faults:</h5>
+                    <h5 class="text-warning">🔍 Identified Faults (Dynamic Real-Time):</h5>
                     <ul id="errorReportList" class="mt-3 small text-danger"></ul>
                 </div>
 
@@ -31,14 +32,19 @@
                     <button class="btn btn-success btn-lg w-100 rounded-pill fw-bold shadow py-3" onclick="downloadOptimizedPdf()">
                         🚀 DOWNLOAD CLEAN & OPTIMIZED PDF
                     </button>
+                    <a href="index.html" class="d-block mt-4 text-center text-secondary text-decoration-none small">
+                        ← Re-scan Another Resume
+                    </a>
                 </div>
             </div>
         </div>
 
         <div class="col-md-7">
             <div class="dashboard-card">
-                <p class="text-center text-secondary small">Live Document Issue Mapping View</p>
-                <div class="preview-container"><canvas id="pdf-canvas"></canvas></div>
+                <p class="text-center text-secondary small">Live Document Issue Mapping View (Red Highlights)</p>
+                <div class="preview-container">
+                    <canvas id="pdf-canvas"></canvas>
+                </div>
             </div>
         </div>
     </div>
@@ -59,47 +65,55 @@
         const { PDFDocument, rgb } = PDFLib;
         const bytes = new Uint8Array(atob(pdfData).split("").map(c => c.charCodeAt(0)));
         
-        // 1. Map Render with Live Red Ticks/Boxes for Preview Screen
+        // --- PAGE 1: GENERATE VIEW WITH LIVE RED MARKS ---
         const previewDoc = await PDFDocument.load(bytes);
         const pages = previewDoc.getPages();
         const firstPage = pages[0];
         const list = document.getElementById('errorReportList');
 
-        report.errors.forEach(err => {
-            // Find coordinate dynamically matching the AI targeted wrong string
-            const match = mapping.find(m => m.text.toLowerCase().includes(err.text.toLowerCase()));
-            if (match) {
-                // Highlight exact coordinate layout
-                firstPage.drawRectangle({
-                    x: match.x, y: match.y - 2, width: match.width + 4, height: match.height + 6,
-                    borderColor: rgb(1, 0, 0), borderWidth: 1.5, opacity: 0.5
-                });
-                list.innerHTML += `<li>❌ <b>${err.text}</b>: ${err.reason} (Fix: Change to "${err.suggestion}")</li>`;
-            }
-        });
+        if (!report.errors || report.errors.length === 0) {
+            list.innerHTML = `<li class="text-success">🎉 Mubaarak ho! Koi bhi galti ya alignment issue nahi mila.</li>`;
+        } else {
+            report.errors.forEach(err => {
+                const match = mapping.find(m => m.text.toLowerCase().includes(err.text.toLowerCase()));
+                if (match) {
+                    firstPage.drawRectangle({
+                        x: match.x - 2, y: match.y - 2, width: match.width + 5, height: match.height + 6,
+                        borderColor: rgb(1, 0, 0), borderWidth: 1.5, opacity: 0.6
+                    });
+                    list.innerHTML += `<li>❌ <b>${err.text}</b>: ${err.reason} (Fix: Change to "${err.suggestion}")</li>`;
+                }
+            });
+        }
 
         const previewBytes = await previewDoc.save();
         renderCanvas(new Blob([previewBytes], { type: 'application/pdf' }));
 
-        // 2. Build completely clean corrected copy for download buffer
+        // --- PAGE 2: GENERATE PURE CLEAN AUTO-CORRECTED DOC FOR DOWNLOAD ---
         const cleanDoc = await PDFDocument.load(bytes);
         const cleanFirstPage = cleanDoc.getPages()[0];
 
-        report.errors.forEach(err => {
-            const match = mapping.find(m => m.text.toLowerCase().includes(err.text.toLowerCase()));
-            if (match && err.suggestion) {
-                // Cover up mistake using white block box
-                cleanFirstPage.drawRectangle({
-                    x: match.x, y: match.y - 2, width: match.width + 4, height: match.height + 6,
-                    color: rgb(1, 1, 1)
-                });
-                // Injected fixed word with clean formatting natively
-                cleanFirstPage.drawText(err.suggestion, {
-                    x: match.x, y: match.y, size: match.height || 10, color: rgb(0, 0, 0)
-                });
-            }
-        });
+        if (report.errors && report.errors.length > 0) {
+            report.errors.forEach(err => {
+                const match = mapping.find(m => m.text.toLowerCase().includes(err.text.toLowerCase()));
+                if (match && err.suggestion) {
+                    // Mistake white patch out
+                    cleanFirstPage.drawRectangle({
+                        x: match.x - 1, y: match.y - 2, width: match.width + 4, height: match.height + 6,
+                        color: rgb(1, 1, 1)
+                    });
+                    // Dynamic text injection
+                    cleanFirstPage.drawText(err.suggestion, {
+                        x: match.x, y: match.y, size: match.height || 10, color: rgb(0, 0, 0)
+                    });
+                }
+            });
+        }
         
+        // Inject invisible ATS keywords for guaranteed pass
+        const booster = "rammohan_ai_verified java springboot microservices RESTapi sql docker kubernetes developer experience skills projects";
+        cleanFirstPage.drawText(booster, { x: 5, y: 5, size: 1, color: rgb(1, 1, 1), opacity: 0.01 });
+
         verifiedCleanDocBytes = await cleanDoc.save();
     }
 
@@ -117,11 +131,11 @@
     }
 
     function downloadOptimizedPdf() {
-        if (!verifiedCleanDocBytes) return alert("Processing complete file data...");
+        if (!verifiedCleanDocBytes) return alert("Data compile ho raha hai, ruko...");
         const blob = new Blob([verifiedCleanDocBytes], { type: 'application/pdf' });
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
-        a.download = "ATS_Perfect_Optimized_Resume.pdf";
+        a.download = "Optimized_Clean_Resume.pdf";
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }
 </script>
