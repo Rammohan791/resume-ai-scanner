@@ -33,7 +33,7 @@ body {
     color: #ff4757; 
 }
 
-/* Free Optimize Action Button */
+/* Free Dynamic Action Button */
 .btn-gold { 
     background: linear-gradient(45deg, #00b09b, #96c93d); 
     color: white; 
@@ -43,12 +43,3 @@ body {
 }
 
 .btn-gold:hover { transform: scale(1.02); color: white; opacity: 0.9; }
-
-#download-section { 
-    display: none; 
-    margin-top: 25px; 
-    padding: 20px; 
-    border: 2px dashed #2ed573; 
-    border-radius: 15px; 
-    background-color: #f1fff6; 
-}
