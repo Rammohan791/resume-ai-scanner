@@ -28,9 +28,8 @@ async function startAIScan(data) {
         text += content.items.map(s => s.str).join(" ").toLowerCase();
     }
 
-    // --- SMART LOGIC ---
+    // Smart ATS Scoring Simulation
     let score = 30;
-    // Check if it's already optimized by us
     if (text.includes("rammohan_ai_verified") || text.includes("senior full-stack engineer")) {
         score = 97;
     } else {
@@ -49,22 +48,18 @@ function analyzeResume() {
     document.getElementById('dynamicScore').innerText = calculatedScore + "%";
     
     const msg = document.getElementById('statusMsg');
-    msg.innerText = calculatedScore > 80 ? "✅ Excellent Resume!" : "⚠️ Critical Fixes Required!";
+    msg.innerText = calculatedScore > 80 ? "✅ Excellent Structure!" : "⚠️ Structural Fixes & Keywords Required!";
     msg.style.color = calculatedScore > 80 ? "#00ff96" : "#ff4d4d";
     
     localStorage.setItem('user_score', calculatedScore + "%");
 }
 
-function payNow(amt, type) {
-    const options = {
-        "key": "rzp_test_STC8d1Ju9UhctD",
-        "amount": amt * 100,
-        "name": "Ram Mohan AI",
-        "handler": function () {
-            localStorage.setItem('user_pdf', originalPdfBase64);
-            localStorage.setItem('pay_type', type);
-            window.location.href = "./result.html";
-        }
-    };
-    new Razorpay(options).open();
+// NO PAYMENT REQUIRED - Direct Local Storage Transfer
+function goToDashboard(type) {
+    if(!originalPdfBase64) {
+        return alert("Bhai, pehle file scan hone do!");
+    }
+    localStorage.setItem('user_pdf', originalPdfBase64);
+    localStorage.setItem('pay_type', type);
+    window.location.href = "./result.html";
 }
